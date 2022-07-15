@@ -5,6 +5,8 @@ from typing import TYPE_CHECKING
 import discord
 from discord.ext import commands
 
+from src.models.errors import UnguildedCommandUsage
+
 if TYPE_CHECKING:
     from src.models.bot import Dandelion
 
@@ -14,7 +16,6 @@ class Listeners(commands.Cog):
 
     def create_command_params(self, command: commands.Command) -> str:
         return " ".join(f"<{param}>" for param in command.clean_params)
-
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx: commands.Context[Dandelion], error: commands.CommandError):
@@ -30,6 +31,13 @@ class Listeners(commands.Cog):
             return await ctx.send(embed=embed)
         elif isinstance(error, commands.CommandOnCooldown):
             return
+        elif isinstance(error, UnguildedCommandUsage):
+            embed = discord.Embed(
+                title="Executed a Server-only command in DMs", 
+                description="This command can only be used in a server.",
+                color=0xFF0000
+            )
+            return await ctx.send(embed=embed)
         else:
             raise error
 

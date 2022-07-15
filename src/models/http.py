@@ -11,7 +11,6 @@ class HTTPType:
     BYTES = 2
 
 class HTTPClient(ClientSession):
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.user_headers = {
@@ -19,11 +18,12 @@ class HTTPClient(ClientSession):
         }
 
     async def get(self, url, rtype = HTTPType.JSON, *args, **kwargs) -> Union[dict, str, bytes]:
-        if args:
-            args['User-Agent'] = self.user_headers['User-Agent']
+        if kwargs:
+            if kwargs.get('headers'):
+                kwargs['headers']['User-Agent'] = self.user_headers['User-Agent']
         else:
-            args = ({'User-Agent': self.user_headers['User-Agent']},)
-        response = super().get(url, *args, **kwargs)
+            kwargs = {'headers': self.user_headers}
+        response = await super().get(url, *args, **kwargs)
         if response.ok:
             if rtype == HTTPType.JSON:
                 return await response.json()

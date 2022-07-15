@@ -4,16 +4,23 @@ import os
 from typing import Dict
 
 from discord.ext import commands
-
 from src.models.cache import Cache
 from src.models.http import HTTPClient
 from src.utils.consts import INTENTS
 
 from .database import Database
+from .help import DandelionHelp
+
 
 class Dandelion(commands.Bot): # can be switched to commands.AutoShardedBot
     def __init__(self, *args, **kwargs):
-        super().__init__(intents=INTENTS, *args, **kwargs)
+        help_ = DandelionHelp(
+            command_attrs={
+                'cooldown': commands.CooldownMapping.from_cooldown(1, 3, commands.BucketType.user),
+                'help': 'Displays all commands or the help of a specific command.'
+            }
+        )
+        super().__init__(intents=INTENTS, help_command=help_, *args, **kwargs)
         self.database: Database = None
         self.session: HTTPClient = None
         self.cache: Dict[int, Cache] = {}
@@ -26,9 +33,11 @@ class Dandelion(commands.Bot): # can be switched to commands.AutoShardedBot
                 await self.load_extension(f'src.cogs.{name}')
 
     def create_self_logger(self):
+        if not os.path.exists('./logs'):
+            os.mkdir('./logs')
         self.logger = logging.getLogger("Dandelion")
         self.logger.setLevel(logging.INFO)
-        handler = logging.FileHandler(filename='logs/dandelion.log', encoding='utf-8', mode='a')
+        handler = logging.FileHandler(filename='logs/runtime.log', encoding='utf-8', mode='w')
         handler.setFormatter(logging.Formatter('%(asctime)s: [%(levelname)s]     %(name)s: %(message)s'))
         self.logger.addHandler(handler)
 
@@ -53,7 +62,7 @@ class Dandelion(commands.Bot): # can be switched to commands.AutoShardedBot
 
     async def start(self, *args, **kwargs):
         async with HTTPClient() as self.session:
-            async with Database() as db:
+            async with Database(self) as db:
                 self.database = db
                 await self.fill_basic_cache()
                 await super().start(*args, **kwargs)

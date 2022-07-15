@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING
 
 import discord
 from discord.ext import commands
+
+from src.models.errors import UnguildedCommandUsage
 
 if TYPE_CHECKING:
     from src.models.bot import Dandelion
@@ -14,13 +17,9 @@ class Moderation(commands.Cog):
         self.bot = bot
 
     async def cog_check(self, ctx: commands.Context[Dandelion]) -> bool:
-        permissions = ['manage_messages', 'manage_guild', 'kick_members', 'ban_members', 'manage_roles']
         if not ctx.guild:
-            return False
-        elif not any(getattr(ctx.author.guild_permissions, perm) for perm in permissions):
-            return False
-        else:
-            return True
+            raise UnguildedCommandUsage("This command can only be used in a server.")
+        return True
 
     def check_hierarchy(
         self, 
@@ -80,6 +79,57 @@ class Moderation(commands.Cog):
             await ctx.guild.unban(member)
         except discord.NotFound:
             return await ctx.send("This user is not banned.")
+
+    @commands.group(name="purge", invoke_without_command=True)
+    @commands.has_permissions(manage_messages=True)
+    @commands.bot_has_permissions(manage_messages=True)
+    async def purge(self, ctx: commands.Context[Dandelion], amount: int):
+        if amount < 1:
+            return await ctx.send("You must delete at least one message.")
+        await ctx.channel.purge(limit=amount)
+        return await ctx.send(f"Deleted {amount} messages.")
+
+    @purge.command(name="user")
+    @commands.has_permissions(manage_messages=True)
+    @commands.bot_has_permissions(manage_messages=True)
+    async def purge_user(self, ctx: commands.Context[Dandelion], member: discord.Member, amount: int):
+        if amount < 1:
+            return await ctx.send("You must delete at least one message.")
+        await ctx.channel.purge(limit=amount, check=lambda m: m.author == member)
+        return await ctx.send(f"Deleted {amount} messages from {member.mention}.")
+
+    @purge.command(name="regex")
+    @commands.has_permissions(manage_messages=True)
+    @commands.bot_has_permissions(manage_messages=True)
+    async def purge_regex(self, ctx: commands.Context[Dandelion], pattern: str, amount: int):
+        if amount < 1:
+            return await ctx.send("You must delete at least one message.")
+        await ctx.channel.purge(limit=amount, check=lambda m: re.search(pattern, m.content))
+        return await ctx.send(f"Deleted {amount} messages matching {pattern}.")
+
+    @purge.command(name="dandelion")
+    @commands.has_permissions(manage_messages=True)
+    async def purge_self(self, ctx: commands.Context[Dandelion], amount: int):
+        if amount < 1:
+            return await ctx.send("You must delete at least one message.")
+        await ctx.channel.purge(limit=amount, check=lambda m: m.author == ctx.guild.me, bulk=False)
+        return await ctx.send(f"Deleted {amount} messages of the bot.")
+
+    @purge.command(name="bot")
+    @commands.has_permissions(manage_messages=True)
+    @commands.bot_has_permissions(manage_messages=True)
+    async def purge_bot(self, ctx: commands.Context[Dandelion], amount: int):
+        if amount < 1:
+            return await ctx.send("You must delete at least one message.")
+        await ctx.channel.purge(limit=amount, check=lambda m: m.author.bot)
+        return await ctx.send(f"Deleted {amount} messages from bots.")
+
+    
+
+
+    
+
+
 
 async def setup(bot: Dandelion):
     await bot.add_cog(Moderation(bot))

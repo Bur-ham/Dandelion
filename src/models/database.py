@@ -1,15 +1,20 @@
-from typing import Dict
-import aiosqlite
+from __future__ import annotations
 
+from typing import TYPE_CHECKING, Dict
+
+import aiosqlite
 from src.utils.consts import PREFIX_CONFIGURATION_TABLE_SCHEMA
 
+if TYPE_CHECKING:
+    from src.models.bot import Dandelion
 
 class Database:
-    def __init__(self) -> None:
+    def __init__(self, bot: Dandelion) -> None:
+        self.bot = bot
         self.connections: Dict[str, aiosqlite.Connection] = {}
 
     async def add_connection(self, name: str, filepath: str) -> None:
-        self.connections[name] = await aiosqlite.connect(filepath)
+        self.connections[name] = await aiosqlite.connect(filepath, loop=self.bot.loop)
     
     def get_connection(self, name: str) -> aiosqlite.Connection:
         return self.connections[name]
