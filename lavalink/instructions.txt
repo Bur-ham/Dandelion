@@ -1,0 +1,14 @@
+Instructions on how to use lavalink.
+The music component of the bot is powered by Lavalink
+without a server running, it will fail to play music.
+
+1. Have Java 14+ installed and added to path
+2. Open command prompt and navigate to the folder containing the lavalink.jar file (aka this folder)
+3. Run the following command:
+    java -jar lavalink.jar
+4. You should see a bunch of fancy text and that should indicate that lavalink server is running.
+5. Now you can start the bot. (The bot only connects at startup)
+
+Note:
+    If it says "java is an unrecognized command", it means java is not in your path.
+    You can lookup how to add java to your path.

@@ -4,6 +4,11 @@ class DandelionException(Exception):
     """Base class for all Dandelion exceptions."""
     pass
 
+class InvalidTimestampError(DandelionException):
+    """Raised when a timestamp is invalid."""
+    def __init__(self, message) -> None:
+        self.message = message
+        super().__init__(message)
 class UnguildedCommandUsage(commands.CheckFailure):
     """Base class for all Discord exceptions."""
     def __init__(self, message: str) -> None:
